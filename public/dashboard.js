@@ -75,6 +75,11 @@ document.addEventListener('DOMContentLoaded', function() {
     updateChart();
 });
 
+// Expose functions to window object so they can be called from HTML
+window.addWater = addWater;
+window.updateWaterCard = updateWaterCard;
+window.updateChart = updateChart;
+
 // Add water function
 function addWater(amount) {
     currentIntake = Math.max(0, Math.min(dailyGoal, currentIntake + amount));

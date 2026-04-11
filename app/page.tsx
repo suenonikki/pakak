@@ -21,6 +21,19 @@ export default function Home() {
       const script = document.createElement('script');
       script.src = '/dashboard.js';
       script.async = true;
+      script.onload = () => {
+        console.log("[v0] dashboard.js script loaded successfully");
+        // Initialize dashboard after script loads
+        if (window.updateWaterCard) {
+          window.updateWaterCard();
+        }
+        if (window.updateChart) {
+          window.updateChart();
+        }
+      };
+      script.onerror = () => {
+        console.error("[v0] Failed to load dashboard.js script");
+      };
       document.body.appendChild(script);
 
       return () => {
@@ -1070,9 +1083,27 @@ export default function Home() {
               </div>
 
               <div className="button-group">
-                <button className="btn btn-minus" onClick={() => (window as any).addWater(-100)}>−</button>
-                <button className="btn btn-add" onClick={() => (window as any).addWater(250)}>+</button>
-                <button className="btn btn-add100" onClick={() => (window as any).addWater(100)}>+100</button>
+          <button className="btn btn-minus" onClick={() => {
+            if (window.addWater) {
+              (window as any).addWater(-100);
+            } else {
+              console.warn("[v0] addWater function not yet loaded");
+            }
+          }}>−</button>
+          <button className="btn btn-add" onClick={() => {
+            if (window.addWater) {
+              (window as any).addWater(250);
+            } else {
+              console.warn("[v0] addWater function not yet loaded");
+            }
+          }}>+</button>
+          <button className="btn btn-add100" onClick={() => {
+            if (window.addWater) {
+              (window as any).addWater(100);
+            } else {
+              console.warn("[v0] addWater function not yet loaded");
+            }
+          }}>+100</button>
               </div>
             </div>
 
