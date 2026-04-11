@@ -25,6 +25,12 @@ export default function Home() {
     { time: 24, flow: 10 },
   ]);
 
+  // Flow-based hydration tracking (design only - will be replaced by real sensor data)
+  const flowBasedIntake = flowData.reduce((total, data) => total + data.flow * 2, 0); // Simulated ml from flow
+  const flowPercentage = Math.min(100, Math.round((flowBasedIntake / dailyGoal) * 100));
+  const flowRemaining = Math.max(0, dailyGoal - flowBasedIntake);
+  const sensorConnected = false; // Design placeholder - will be true when sensor is connected
+
   const addWater = useCallback((amount: number) => {
     setWaterIntake((prev) => {
       const newValue = prev + amount;
@@ -887,13 +893,21 @@ export default function Home() {
 
             {showAlert && (
               <div className="alert">
-                <div className="alert-icon">💧</div>
+                <div className="alert-icon">{sensorConnected ? '💧' : '📡'}</div>
                 <div className="alert-content">
-                  <div className="alert-title">{remaining > 0 ? 'Stay Hydrated!' : 'Great job!'}</div>
+                  <div className="alert-title">
+                    {!sensorConnected 
+                      ? 'Flow Sensor Status' 
+                      : flowRemaining > 0 
+                        ? 'Keep Drinking!' 
+                        : 'Goal Reached!'}
+                  </div>
                   <div className="alert-message">
-                    {remaining > 0 
-                      ? `Drink ${remaining}ml more to reach your daily goal` 
-                      : 'You have reached your daily hydration goal!'}
+                    {!sensorConnected 
+                      ? 'Awaiting flow sensor connection...' 
+                      : flowRemaining > 0 
+                        ? `Flow detected: ${flowBasedIntake}ml consumed. ${flowRemaining}ml remaining.`
+                        : `Excellent! Flow sensor tracked ${flowBasedIntake}ml today!`}
                   </div>
                 </div>
                 <button className="alert-close" onClick={() => setShowAlert(false)}>×</button>
@@ -1018,21 +1032,26 @@ export default function Home() {
             </div>
 
             <div className="summary-card">
-              <h3 className="card-title">Today&apos;s Summary</h3>
+              <h3 className="card-title">Today&apos;s Summary (Flow Sensor)</h3>
               <div className="summary-grid">
                 <div>
-                  <p className="summary-item-value">{percentage}%</p>
+                  <p className="summary-item-value">{sensorConnected ? `${flowPercentage}%` : '--'}</p>
                   <p className="summary-item-label">Hydration</p>
                 </div>
                 <div>
-                  <p className="summary-item-value">{waterIntake}ml</p>
-                  <p className="summary-item-label">Consumed</p>
+                  <p className="summary-item-value">{sensorConnected ? `${flowBasedIntake}ml` : '--'}</p>
+                  <p className="summary-item-label">Flow Detected</p>
                 </div>
                 <div>
-                  <p className="summary-item-value">{remaining}ml</p>
+                  <p className="summary-item-value">{sensorConnected ? `${flowRemaining}ml` : '--'}</p>
                   <p className="summary-item-label">Remaining</p>
                 </div>
               </div>
+              {!sensorConnected && (
+                <p style={{textAlign: 'center', color: 'var(--muted-foreground)', fontSize: '12px', marginTop: '12px'}}>
+                  Connect flow sensor to track actual consumption
+                </p>
+              )}
             </div>
 
             <h2 className="section-title">Connected Devices</h2>
@@ -1109,14 +1128,14 @@ export default function Home() {
               </div>
 
               <div className="summary-card">
-                <h3 className="card-title">Activity Summary</h3>
+                <h3 className="card-title">Flow Sensor Summary</h3>
                 <div className="summary-grid">
                   <div>
-                    <p className="summary-item-value">{waterIntake > 0 ? Math.ceil(waterIntake / 200) : 0}</p>
-                    <p className="summary-item-label">Total Drinks</p>
+                    <p className="summary-item-value">{sensorConnected ? flowData.filter(d => d.flow > 0).length : '--'}</p>
+                    <p className="summary-item-label">Flow Events</p>
                   </div>
                   <div>
-                    <p className="summary-item-value">{waterIntake}ml</p>
+                    <p className="summary-item-value">{sensorConnected ? `${flowBasedIntake}ml` : '--'}</p>
                     <p className="summary-item-label">Total Volume</p>
                   </div>
                   <div>
@@ -1124,6 +1143,11 @@ export default function Home() {
                     <p className="summary-item-label">Daily Goal</p>
                   </div>
                 </div>
+                {!sensorConnected && (
+                  <p style={{textAlign: 'center', color: 'var(--muted-foreground)', fontSize: '12px', marginTop: '12px'}}>
+                    Awaiting sensor connection
+                  </p>
+                )}
               </div>
             </div>
 
