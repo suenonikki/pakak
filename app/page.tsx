@@ -3,21 +3,220 @@
 import { useEffect, useState } from 'react';
 
 export default function Home() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [activePage, setActivePage] = useState('home');
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (username.trim() && password.trim()) {
+      setIsLoggedIn(true);
+    }
+  };
 
   useEffect(() => {
     // Load the dashboard script after component mounts
-    const script = document.createElement('script');
-    script.src = '/dashboard.js';
-    script.async = true;
-    document.body.appendChild(script);
+    if (isLoggedIn) {
+      const script = document.createElement('script');
+      script.src = '/dashboard.js';
+      script.async = true;
+      document.body.appendChild(script);
 
-    return () => {
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
-      }
-    };
-  }, []);
+      return () => {
+        if (document.body.contains(script)) {
+          document.body.removeChild(script);
+        }
+      };
+    }
+  }, [isLoggedIn]);
+
+  if (!isLoggedIn) {
+    return (
+      <>
+        <style>{`
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+
+          :root {
+            --background: #F5E4CF;
+            --foreground: #1a1a2e;
+            --card: #ffffff;
+            --card-foreground: #1a1a2e;
+            --primary: #275CCC;
+            --primary-foreground: #F5E4CF;
+            --secondary: #e8d4bd;
+            --secondary-foreground: #275CCC;
+            --muted-foreground: #6b7280;
+            --border: #d4c4ad;
+            --water-light: #a8d4f5;
+            --water-medium: #5ba8e6;
+            --water-dark: #275CCC;
+          }
+
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--background);
+            color: var(--foreground);
+            overflow-x: hidden;
+          }
+
+          .login-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--primary), #5ba8e6);
+            padding: 20px;
+          }
+
+          .login-card {
+            background: var(--card);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+          }
+
+          .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+          }
+
+          .login-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--foreground);
+            margin-bottom: 8px;
+          }
+
+          .login-subtitle {
+            font-size: 14px;
+            color: var(--muted-foreground);
+          }
+
+          .form-group {
+            margin-bottom: 16px;
+          }
+
+          .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--foreground);
+            margin-bottom: 8px;
+          }
+
+          .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 14px;
+            color: var(--foreground);
+            background: var(--card);
+            transition: all 0.3s;
+            box-sizing: border-box;
+          }
+
+          .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(39, 92, 204, 0.1);
+          }
+
+          .login-button {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--primary);
+            color: var(--primary-foreground);
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 24px;
+          }
+
+          .login-button:hover:not(:disabled) {
+            background: #1f4aa8;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(39, 92, 204, 0.3);
+          }
+
+          .login-button:disabled {
+            background: var(--border);
+            color: var(--muted-foreground);
+            cursor: not-allowed;
+            opacity: 0.6;
+          }
+
+          @media (max-width: 640px) {
+            .login-card {
+              padding: 32px 24px;
+            }
+
+            .login-title {
+              font-size: 24px;
+            }
+          }
+        `}</style>
+
+        <div className="login-container">
+          <div className="login-card">
+            <div className="login-header">
+              <h1 className="login-title">💧 Water Monitor</h1>
+              <p className="login-subtitle">Sign in to your account</p>
+            </div>
+
+            <form onSubmit={handleLogin}>
+              <div className="form-group">
+                <label className="form-label" htmlFor="username">Username</label>
+                <input 
+                  id="username"
+                  className="form-input"
+                  type="text"
+                  placeholder="Enter your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  aria-label="Username input"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="password">Password</label>
+                <input 
+                  id="password"
+                  className="form-input"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  aria-label="Password input"
+                />
+              </div>
+
+              <button 
+                className="login-button"
+                type="submit"
+                disabled={!username.trim() || !password.trim()}
+                aria-label="Login button"
+              >
+                Sign In
+              </button>
+            </form>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>

@@ -1,19 +1,71 @@
-// Water intake data
+// Water intake data (User input via buttons)
 let currentIntake = 0;
 const dailyGoal = 1000;
 
-// Drinking history throughout the day (timestamp -> ml consumed)
+// Drinking history throughout the day (timestamp -> ml consumed by user)
 let drinkingHistory = [];
+
+// Water flow sensor data (separate from user intake)
+let sensorHistory = [];
+
+// Generate mock sensor data for the chart
+function generateSensorData() {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const currentTime = now.getTime();
+    
+    // Generate realistic sensor flow readings throughout the day
+    sensorHistory = [];
+    
+    // Start at beginning of day
+    let sensorReading = 0;
+    sensorHistory.push({ time: startOfDay.getTime(), ml: sensorReading });
+    
+    // Add readings every hour with some variation
+    for (let i = 1; i < 24; i++) {
+        const timeAtHour = startOfDay.getTime() + (i * 60 * 60 * 1000);
+        
+        // Only add data points up to current time
+        if (timeAtHour > currentTime) break;
+        
+        // Simulate water flow from a faucet or pipe (irregular pattern)
+        // Higher flow during morning (6-9am), mid-day (12-1pm), and evening (6-8pm)
+        let flowAmount = 0;
+        if (i >= 6 && i < 9) flowAmount = 150 + Math.random() * 100;
+        else if (i >= 12 && i < 13) flowAmount = 200 + Math.random() * 80;
+        else if (i >= 18 && i < 20) flowAmount = 120 + Math.random() * 100;
+        else if (i >= 20 && i < 22) flowAmount = 50 + Math.random() * 60;
+        else if (i > 22 || i < 6) flowAmount = Math.random() * 30; // Low flow at night
+        
+        sensorReading += flowAmount;
+        sensorHistory.push({ time: timeAtHour, ml: Math.min(sensorReading, 3000) }); // Cap at 3000ml
+    }
+    
+    // Add current time reading if not already added
+    const lastEntry = sensorHistory[sensorHistory.length - 1];
+    if (lastEntry.time < currentTime) {
+        let currentReading = lastEntry.ml;
+        // Add a small increment based on current hour
+        const currentHour = now.getHours();
+        if (currentHour >= 6 && currentHour < 9) currentReading += Math.random() * 50;
+        else if (currentHour >= 18 && currentHour < 20) currentReading += Math.random() * 30;
+        
+        sensorHistory.push({ time: currentTime, ml: Math.min(currentReading, 3000) });
+    }
+}
 
 // Initialize with starting data point
 function initializeDrinkingHistory() {
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
-    // Add initial entry for start of day
+    // Add initial entry for start of day (user intake)
     drinkingHistory = [
         { time: startOfDay.getTime(), ml: 0 }
     ];
+    
+    // Generate sensor data for the chart
+    generateSensorData();
 }
 
 // Initialize chart on page load
@@ -76,9 +128,10 @@ function updateWaterCard() {
     document.getElementById('hydration-percent').textContent = percentage + '%';
 }
 
-// Update chart
+// Update chart (displays sensor data, not user intake)
 function updateChart() {
-    const maxMl = dailyGoal;
+    // Use sensor data for the chart (max is 3000ml from sensor)
+    const maxMl = 3000;
     const svgWidth = 600;
     const svgHeight = 150;
     const chartWidth = svgWidth - 60;
@@ -86,11 +139,11 @@ function updateChart() {
     const startX = 40;
     const startY = 10;
     
-    if (drinkingHistory.length === 0) {
+    if (sensorHistory.length === 0) {
         return;
     }
     
-    // Build SVG points for line and area
+    // Build SVG points for line and area using SENSOR data
     let linePoints = [];
     let areaPoints = [];
     
@@ -99,8 +152,8 @@ function updateChart() {
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
     const endOfDay = startOfDay + (24 * 60 * 60 * 1000);
     
-    // Calculate points based on time of day
-    drinkingHistory.forEach((data, index) => {
+    // Calculate points based on time of day (using sensor data)
+    sensorHistory.forEach((data, index) => {
         const timeElapsed = data.time - startOfDay;
         const dayProgress = Math.min(timeElapsed / (24 * 60 * 60 * 1000), 1); // Cap at 1.0 (100% of day)
         const xPosition = startX + dayProgress * chartWidth;
@@ -119,13 +172,13 @@ function updateChart() {
     document.getElementById('chart-line').setAttribute('points', linePoints.join(' '));
     document.getElementById('chart-area').setAttribute('points', areaPolygon);
     
-    // Update data points (circles)
+    // Update data points (circles) using sensor data
     const pointsGroup = document.getElementById('chart-points');
     pointsGroup.innerHTML = '';
     
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
     
-    drinkingHistory.forEach(data => {
+    sensorHistory.forEach(data => {
         const timeElapsed = data.time - startOfDay;
         const dayProgress = Math.min(timeElapsed / (24 * 60 * 60 * 1000), 1);
         const xPosition = startX + dayProgress * chartWidth;
@@ -142,11 +195,11 @@ function updateChart() {
         pointsGroup.appendChild(circle);
     });
     
-    // Update total consumed
-    document.getElementById('chart-total-ml').textContent = currentIntake;
+    // Update total consumed to show SENSOR data (not user intake)
+    const latestSensorReading = sensorHistory[sensorHistory.length - 1];
+    document.getElementById('chart-total-ml').textContent = Math.round(latestSensorReading.ml);
     
     // Update time range
-    const now = new Date();
     const currentHour = now.getHours();
     const ampm = currentHour >= 12 ? 'PM' : 'AM';
     const displayHour = currentHour % 12 || 12;
