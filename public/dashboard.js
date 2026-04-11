@@ -79,26 +79,9 @@ document.addEventListener('DOMContentLoaded', function() {
 function addWater(amount) {
     currentIntake = Math.max(0, Math.min(dailyGoal, currentIntake + amount));
     
-    // Add entry to drinking history with current timestamp
-    const now = new Date();
-    
-    // Update last entry or add new one if more than 1 minute has passed
-    if (drinkingHistory.length > 0) {
-        const lastEntry = drinkingHistory[drinkingHistory.length - 1];
-        const timeDiff = now.getTime() - lastEntry.time;
-        
-        if (timeDiff < 60000) { // Less than 1 minute, update existing
-            lastEntry.ml = currentIntake;
-        } else { // More than 1 minute, add new entry
-            drinkingHistory.push({ time: now.getTime(), ml: currentIntake });
-        }
-    } else {
-        drinkingHistory.push({ time: now.getTime(), ml: currentIntake });
-    }
-    
-    // Update UI
+    // Update water intake card only (user input box)
+    // Chart displays sensor data separately and is not affected by user input
     updateWaterCard();
-    updateChart();
 }
 
 // Update water card UI
