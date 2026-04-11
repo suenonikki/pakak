@@ -159,8 +159,6 @@ function updateChart() {
     const pointsGroup = document.getElementById('chart-points');
     pointsGroup.innerHTML = '';
     
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    
     sensorHistory.forEach(data => {
         const timeElapsed = data.time - startOfDay;
         const dayProgress = Math.min(timeElapsed / (24 * 60 * 60 * 1000), 1);
