@@ -38,11 +38,36 @@ export default function Home() {
   // Emoji cycling for Stay Hydrated
   const hydrationEmojis = ['💧', '🥤', '💦', '🚰', '🧊', '🌊'];
   const [currentEmojiIndex, setCurrentEmojiIndex] = useState(0);
+  const [emojiAnimating, setEmojiAnimating] = useState(false);
+
+  // Time-based greeting
+  const [greeting, setGreeting] = useState('Good Morning');
+
+  useEffect(() => {
+    const updateGreeting = () => {
+      const hour = new Date().getHours();
+      if (hour >= 5 && hour < 12) {
+        setGreeting('Good Morning');
+      } else if (hour >= 12 && hour < 18) {
+        setGreeting('Good Afternoon');
+      } else {
+        setGreeting('Good Evening');
+      }
+    };
+    
+    updateGreeting();
+    const greetingInterval = setInterval(updateGreeting, 60000); // Check every minute
+    return () => clearInterval(greetingInterval);
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentEmojiIndex((prev) => (prev + 1) % hydrationEmojis.length);
-    }, 1500);
+      setEmojiAnimating(true);
+      setTimeout(() => {
+        setCurrentEmojiIndex((prev) => (prev + 1) % hydrationEmojis.length);
+        setEmojiAnimating(false);
+      }, 300);
+    }, 2000);
     return () => clearInterval(interval);
   }, [hydrationEmojis.length]);
 
@@ -280,6 +305,36 @@ export default function Home() {
           font-size: 24px;
           font-weight: bold;
           color: var(--foreground);
+        }
+
+        .hydration-emoji {
+          display: inline-block;
+          transition: all 0.3s ease;
+        }
+
+        .hydration-emoji.animating {
+          animation: emojiPop 0.6s ease;
+        }
+
+        @keyframes emojiPop {
+          0% {
+            transform: scale(1) rotate(0deg);
+            opacity: 1;
+          }
+          25% {
+            transform: scale(0.5) rotate(-10deg);
+            opacity: 0.5;
+          }
+          50% {
+            transform: scale(1.3) rotate(10deg);
+            opacity: 1;
+          }
+          75% {
+            transform: scale(1.1) rotate(-5deg);
+          }
+          100% {
+            transform: scale(1) rotate(0deg);
+          }
         }
 
         .alert {
@@ -1144,8 +1199,8 @@ export default function Home() {
 
 <div className={`page-container ${activePage === 'home' ? 'active' : ''}`}>
   <div className="header">
-  <p className="header-subtitle">Good Morning, {isLoggedIn && userData ? userData.firstName : 'User'}</p>
-  <h1 className="header-title">Stay Hydrated {hydrationEmojis[currentEmojiIndex]}</h1>
+  <p className="header-subtitle">{greeting}, {isLoggedIn && userData ? userData.firstName : 'User'}</p>
+  <h1 className="header-title">Stay Hydrated <span className={`hydration-emoji ${emojiAnimating ? 'animating' : ''}`}>{hydrationEmojis[currentEmojiIndex]}</span></h1>
   </div>
 
             {showAlert && (

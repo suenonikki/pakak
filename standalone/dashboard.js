@@ -14,6 +14,7 @@ let userData = null;
 // Emoji cycling for Stay Hydrated
 const hydrationEmojis = ['💧', '🥤', '💦', '🚰', '🧊', '🌊'];
 let currentEmojiIndex = 0;
+let emojiAnimating = false;
 
 // Flow sensor simulation data for chart (design only - will be replaced by real sensor data)
 const flowData = [
@@ -45,27 +46,55 @@ const flowRemaining = Math.max(0, DAILY_GOAL - flowBasedIntake);
 // Greeting and Emoji Functions
 // ============================================
 
+function getTimeBasedGreeting() {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) {
+    return 'Good Morning';
+  } else if (hour >= 12 && hour < 18) {
+    return 'Good Afternoon';
+  } else {
+    return 'Good Evening';
+  }
+}
+
 function updateGreeting() {
   const greetingElement = document.getElementById('greeting-text');
   if (greetingElement) {
+    const greeting = getTimeBasedGreeting();
     if (isLoggedIn && userData && userData.firstName) {
-      greetingElement.textContent = 'Good Morning, ' + userData.firstName;
+      greetingElement.textContent = greeting + ', ' + userData.firstName;
     } else {
-      greetingElement.textContent = 'Good Morning, User';
+      greetingElement.textContent = greeting + ', User';
     }
   }
 }
 
 function cycleEmoji() {
-  currentEmojiIndex = (currentEmojiIndex + 1) % hydrationEmojis.length;
   const emojiElement = document.getElementById('hydration-emoji');
   if (emojiElement) {
-    emojiElement.textContent = hydrationEmojis[currentEmojiIndex];
+    // Start animation
+    emojiElement.classList.add('animating');
+    
+    // Change emoji after animation starts
+    setTimeout(() => {
+      currentEmojiIndex = (currentEmojiIndex + 1) % hydrationEmojis.length;
+      emojiElement.textContent = hydrationEmojis[currentEmojiIndex];
+    }, 300);
+    
+    // Remove animation class after it completes
+    setTimeout(() => {
+      emojiElement.classList.remove('animating');
+    }, 600);
   }
 }
 
 function startEmojiCycle() {
-  setInterval(cycleEmoji, 1500);
+  setInterval(cycleEmoji, 2000);
+}
+
+function startGreetingUpdate() {
+  // Update greeting every minute to catch time changes
+  setInterval(updateGreeting, 60000);
 }
 
 // ============================================
@@ -438,13 +467,16 @@ function init() {
   updateProfileView();
   updateGreeting();
   
-  // Start emoji cycling animation
+  // Start emoji cycling animation with pop effect
   startEmojiCycle();
+  
+  // Start greeting update interval for time-based changes
+  startGreetingUpdate();
   
   console.log('Dashboard initialized');
   console.log('Daily Goal:', DAILY_GOAL + 'ml');
   console.log('Sensor Connected:', sensorConnected);
-}
+  }
 
 // Run initialization when DOM is ready
 document.addEventListener('DOMContentLoaded', init);
