@@ -65,11 +65,59 @@ export default function Home() {
       setEmojiAnimating(true);
       setTimeout(() => {
         setCurrentEmojiIndex((prev) => (prev + 1) % hydrationEmojis.length);
+      }, 250);
+      setTimeout(() => {
         setEmojiAnimating(false);
-      }, 300);
-    }, 2000);
+      }, 500);
+    }, 2500);
     return () => clearInterval(interval);
   }, [hydrationEmojis.length]);
+
+  // Activity log state - tracks real events
+  interface ActivityItem {
+    id: number;
+    time: string;
+    title: string;
+    details: string;
+  }
+  const [activityLog, setActivityLog] = useState<ActivityItem[]>([]);
+  const [activityIdCounter, setActivityIdCounter] = useState(0);
+
+  // Add activity to log
+  const addActivity = useCallback((title: string, details: string) => {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    const dateStr = 'Today, ' + timeStr;
+    
+    setActivityLog(prev => [{
+      id: activityIdCounter,
+      time: dateStr,
+      title,
+      details
+    }, ...prev].slice(0, 10)); // Keep last 10 activities
+    setActivityIdCounter(prev => prev + 1);
+  }, [activityIdCounter]);
+
+  // Connected devices state
+  const [connectedDevices, setConnectedDevices] = useState<Array<{
+    id: string;
+    name: string;
+    icon: string;
+    status: string;
+    battery: number;
+  }>>([]);
+  const [waitingDots, setWaitingDots] = useState('');
+
+  // Animated dots for "Waiting for device..."
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setWaitingDots(prev => {
+        if (prev.length >= 3) return '';
+        return prev + '.';
+      });
+    }, 500);
+    return () => clearInterval(interval);
+  }, []);
 
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -160,10 +208,27 @@ export default function Home() {
   const addWater = useCallback((amount: number) => {
     setWaterIntake((prev) => {
       const newValue = prev + amount;
-      // Cap at 1000ml max and 0ml min
-      return Math.max(0, Math.min(dailyGoal, newValue));
+      const cappedValue = Math.max(0, Math.min(dailyGoal, newValue));
+      
+      // Log activity for water intake changes
+      if (amount > 0 && cappedValue > prev) {
+        const actualAmount = cappedValue - prev;
+        addActivity('Water Added', `Added ${actualAmount}ml to daily intake`);
+      } else if (amount < 0 && cappedValue < prev) {
+        const actualAmount = prev - cappedValue;
+        addActivity('Water Removed', `Removed ${actualAmount}ml from daily intake`);
+      }
+      
+      // Check if goal reached
+      if (cappedValue >= dailyGoal && prev < dailyGoal) {
+        setTimeout(() => {
+          addActivity('Goal Reached!', `Congratulations! You reached your ${dailyGoal}ml daily goal`);
+        }, 100);
+      }
+      
+      return cappedValue;
     });
-  }, [dailyGoal]);
+  }, [dailyGoal, addActivity]);
 
   const percentage = Math.round((waterIntake / dailyGoal) * 100);
   const remaining = Math.max(0, dailyGoal - waterIntake);
@@ -309,32 +374,36 @@ export default function Home() {
 
         .hydration-emoji {
           display: inline-block;
-          transition: all 0.3s ease;
+          transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
         }
 
         .hydration-emoji.animating {
-          animation: emojiPop 0.6s ease;
+          animation: emojiSwap 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        @keyframes emojiPop {
+        @keyframes emojiSwap {
           0% {
-            transform: scale(1) rotate(0deg);
+            transform: translateY(0) scale(1);
             opacity: 1;
           }
-          25% {
-            transform: scale(0.5) rotate(-10deg);
-            opacity: 0.5;
+          40% {
+            transform: translateY(-8px) scale(1.1);
+            opacity: 0;
           }
-          50% {
-            transform: scale(1.3) rotate(10deg);
-            opacity: 1;
-          }
-          75% {
-            transform: scale(1.1) rotate(-5deg);
+          60% {
+            transform: translateY(8px) scale(0.9);
+            opacity: 0;
           }
           100% {
-            transform: scale(1) rotate(0deg);
+            transform: translateY(0) scale(1);
+            opacity: 1;
           }
+        }
+
+        .waiting-dots {
+          display: inline-block;
+          min-width: 24px;
+          text-align: left;
         }
 
         .alert {
@@ -1366,38 +1435,36 @@ export default function Home() {
               )}
             </div>
 
-            <h2 className="section-title">Connected Devices</h2>
-            <div className="devices-container">
-              <div className="device-card">
-                <div className="device-icon">⌚</div>
-                <div className="device-info">
-                  <p className="device-name">Smart Wristband</p>
-                  <p className="device-status">Last sync: Just now</p>
-                </div>
-                <div className="device-meta">
-                  <span className="battery">🔋 78%</span>
-                  <div className="connected-badge">
-                    <div className="connected-dot"></div>
-                    Connected
-                  </div>
-                </div>
-              </div>
-
-              <div className="device-card">
-                <div className="device-icon">💧</div>
-                <div className="device-info">
-                  <p className="device-name">HydroFlow Tumbler</p>
-                  <p className="device-status">Water level: 65%</p>
-                </div>
-                <div className="device-meta">
-                  <span className="battery">🔋 92%</span>
-                  <div className="connected-badge">
-                    <div className="connected-dot"></div>
-                    Connected
-                  </div>
-                </div>
-              </div>
-            </div>
+<h2 className="section-title">Connected Devices</h2>
+  <div className="devices-container">
+  {connectedDevices.length === 0 ? (
+    <div className="device-card" style={{justifyContent: 'center', padding: '32px 16px'}}>
+      <div className="device-info" style={{textAlign: 'center'}}>
+        <p className="device-name" style={{color: 'var(--muted-foreground)'}}>
+          Waiting for a device<span className="waiting-dots">{waitingDots}</span>
+        </p>
+        <p className="device-status" style={{marginTop: '8px'}}>No devices connected yet</p>
+      </div>
+    </div>
+  ) : (
+    connectedDevices.map((device) => (
+      <div className="device-card" key={device.id}>
+        <div className="device-icon">{device.icon}</div>
+        <div className="device-info">
+          <p className="device-name">{device.name}</p>
+          <p className="device-status">{device.status}</p>
+        </div>
+        <div className="device-meta">
+          <span className="battery">🔋 {device.battery}%</span>
+          <div className="connected-badge">
+            <div className="connected-dot"></div>
+            Connected
+          </div>
+        </div>
+      </div>
+    ))
+  )}
+  </div>
             </div>
 
             {/* Activity Page */}
@@ -1408,35 +1475,20 @@ export default function Home() {
               </div>
 
               <div className="activity-grid">
-                <div className="activity-card">
-                  <div className="activity-time">Today, 6:00 AM</div>
-                  <div className="activity-title">Morning Hydration</div>
-                  <div className="activity-details">Drank 250ml of water to start the day</div>
-                </div>
-
-                <div className="activity-card">
-                  <div className="activity-time">Today, 9:00 AM</div>
-                  <div className="activity-title">Mid-Morning Boost</div>
-                  <div className="activity-details">Drank 200ml during work break</div>
-                </div>
-
-                <div className="activity-card">
-                  <div className="activity-time">Today, 12:30 PM</div>
-                  <div className="activity-title">Lunch Time Hydration</div>
-                  <div className="activity-details">Drank 300ml with lunch</div>
-                </div>
-
-                <div className="activity-card">
-                  <div className="activity-time">Today, 3:00 PM</div>
-                  <div className="activity-title">Afternoon Refresh</div>
-                  <div className="activity-details">Drank 150ml to stay focused</div>
-                </div>
-
-                <div className="activity-card">
-                  <div className="activity-time">Today, 6:00 PM</div>
-                  <div className="activity-title">Evening Hydration</div>
-                  <div className="activity-details">Drank 100ml before dinner</div>
-                </div>
+                {activityLog.length === 0 ? (
+                  <div className="activity-card" style={{textAlign: 'center', padding: '32px 16px'}}>
+                    <div className="activity-title" style={{color: 'var(--muted-foreground)'}}>No activities yet</div>
+                    <div className="activity-details">Start tracking your water intake on the Home page</div>
+                  </div>
+                ) : (
+                  activityLog.map((activity) => (
+                    <div className="activity-card" key={activity.id}>
+                      <div className="activity-time">{activity.time}</div>
+                      <div className="activity-title">{activity.title}</div>
+                      <div className="activity-details">{activity.details}</div>
+                    </div>
+                  ))
+                )}
               </div>
 
               <div className="summary-card">

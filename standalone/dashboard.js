@@ -16,6 +16,14 @@ const hydrationEmojis = ['💧', '🥤', '💦', '🚰', '🧊', '🌊'];
 let currentEmojiIndex = 0;
 let emojiAnimating = false;
 
+// Activity log state - tracks real events
+let activityLog = [];
+let activityIdCounter = 0;
+
+// Connected devices state
+let connectedDevices = [];
+let waitingDots = '';
+
 // Flow sensor simulation data for chart (design only - will be replaced by real sensor data)
 const flowData = [
   { time: 0, flow: 0 },
@@ -75,21 +83,21 @@ function cycleEmoji() {
     // Start animation
     emojiElement.classList.add('animating');
     
-    // Change emoji after animation starts
+    // Change emoji at midpoint of animation
     setTimeout(() => {
       currentEmojiIndex = (currentEmojiIndex + 1) % hydrationEmojis.length;
       emojiElement.textContent = hydrationEmojis[currentEmojiIndex];
-    }, 300);
+    }, 250);
     
     // Remove animation class after it completes
     setTimeout(() => {
       emojiElement.classList.remove('animating');
-    }, 600);
+    }, 500);
   }
 }
 
 function startEmojiCycle() {
-  setInterval(cycleEmoji, 2000);
+  setInterval(cycleEmoji, 2500);
 }
 
 function startGreetingUpdate() {
@@ -98,13 +106,145 @@ function startGreetingUpdate() {
 }
 
 // ============================================
+// Activity Log Functions
+// ============================================
+
+function addActivity(title, details) {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  const dateStr = 'Today, ' + timeStr;
+  
+  activityLog.unshift({
+    id: activityIdCounter++,
+    time: dateStr,
+    title: title,
+    details: details
+  });
+  
+  // Keep last 10 activities
+  if (activityLog.length > 10) {
+    activityLog = activityLog.slice(0, 10);
+  }
+  
+  updateActivityDisplay();
+}
+
+function updateActivityDisplay() {
+  const activityGrid = document.getElementById('activity-grid');
+  if (!activityGrid) return;
+  
+  if (activityLog.length === 0) {
+    activityGrid.innerHTML = `
+      <div class="activity-card" style="text-align: center; padding: 32px 16px;">
+        <div class="activity-title" style="color: var(--muted-foreground);">No activities yet</div>
+        <div class="activity-details">Start tracking your water intake on the Home page</div>
+      </div>
+    `;
+  } else {
+    activityGrid.innerHTML = activityLog.map(activity => `
+      <div class="activity-card">
+        <div class="activity-time">${activity.time}</div>
+        <div class="activity-title">${activity.title}</div>
+        <div class="activity-details">${activity.details}</div>
+      </div>
+    `).join('');
+  }
+}
+
+// ============================================
+// Connected Devices Functions
+// ============================================
+
+function updateWaitingDots() {
+  waitingDots = waitingDots.length >= 3 ? '' : waitingDots + '.';
+  const dotsElement = document.getElementById('waiting-dots');
+  if (dotsElement) {
+    dotsElement.textContent = waitingDots;
+  }
+}
+
+function startWaitingDotsAnimation() {
+  setInterval(updateWaitingDots, 500);
+}
+
+function updateDevicesDisplay() {
+  const devicesContainer = document.getElementById('devices-container');
+  if (!devicesContainer) return;
+  
+  if (connectedDevices.length === 0) {
+    devicesContainer.innerHTML = `
+      <div class="device-card" style="justify-content: center; padding: 32px 16px;">
+        <div class="device-info" style="text-align: center;">
+          <p class="device-name" style="color: var(--muted-foreground);">
+            Waiting for a device<span class="waiting-dots" id="waiting-dots">${waitingDots}</span>
+          </p>
+          <p class="device-status" style="margin-top: 8px;">No devices connected yet</p>
+        </div>
+      </div>
+    `;
+  } else {
+    devicesContainer.innerHTML = connectedDevices.map(device => `
+      <div class="device-card">
+        <div class="device-icon">${device.icon}</div>
+        <div class="device-info">
+          <p class="device-name">${device.name}</p>
+          <p class="device-status">${device.status}</p>
+        </div>
+        <div class="device-meta">
+          <span class="battery">🔋 ${device.battery}%</span>
+          <div class="connected-badge">
+            <div class="connected-dot"></div>
+            Connected
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+// Add a device (for future integration)
+function addDevice(id, name, icon, status, battery) {
+  connectedDevices.push({ id, name, icon, status, battery });
+  updateDevicesDisplay();
+  addActivity('Device Connected', `${name} has been connected`);
+}
+
+// Remove a device
+function removeDevice(id) {
+  const device = connectedDevices.find(d => d.id === id);
+  if (device) {
+    connectedDevices = connectedDevices.filter(d => d.id !== id);
+    updateDevicesDisplay();
+    addActivity('Device Disconnected', `${device.name} has been disconnected`);
+  }
+}
+
+// ============================================
 // Water Intake Functions
 // ============================================
 
 function addWater(amount) {
+  const oldValue = waterIntake;
   const newValue = waterIntake + amount;
   // Cap at 1000ml max and 0ml min
   waterIntake = Math.max(0, Math.min(DAILY_GOAL, newValue));
+  
+  // Log activity for water intake changes
+  if (amount > 0 && waterIntake > oldValue) {
+    const actualAmount = waterIntake - oldValue;
+    addActivity('Water Added', `Added ${actualAmount}ml to daily intake`);
+  } else if (amount < 0 && waterIntake < oldValue) {
+    const actualAmount = oldValue - waterIntake;
+    addActivity('Water Removed', `Removed ${actualAmount}ml from daily intake`);
+  }
+  
+  // Check if goal reached
+  if (waterIntake >= DAILY_GOAL && oldValue < DAILY_GOAL) {
+    setTimeout(() => {
+      addActivity('Goal Reached!', `Congratulations! You reached your ${DAILY_GOAL}ml daily goal`);
+    }, 100);
+  }
+  
   updateWaterDisplay();
 }
 
@@ -466,17 +606,22 @@ function init() {
   drawChart();
   updateProfileView();
   updateGreeting();
+  updateActivityDisplay();
+  updateDevicesDisplay();
   
-  // Start emoji cycling animation with pop effect
+  // Start emoji cycling animation with smooth effect
   startEmojiCycle();
   
   // Start greeting update interval for time-based changes
   startGreetingUpdate();
   
+  // Start waiting dots animation for devices
+  startWaitingDotsAnimation();
+  
   console.log('Dashboard initialized');
   console.log('Daily Goal:', DAILY_GOAL + 'ml');
   console.log('Sensor Connected:', sensorConnected);
-  }
+}
 
 // Run initialization when DOM is ready
 document.addEventListener('DOMContentLoaded', init);
