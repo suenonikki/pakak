@@ -182,75 +182,88 @@ export default function Home() {
     setAuthMode('login');
   };
 
-  // Flow sensor simulation data for chart (design only - will be replaced by real sensor data)
-  const [flowData] = useState([
-    { time: 0, flow: 0 },
-    { time: 2, flow: 15 },
-    { time: 4, flow: 45 },
-    { time: 6, flow: 30 },
-    { time: 8, flow: 60 },
-    { time: 10, flow: 40 },
-    { time: 12, flow: 75 },
-    { time: 14, flow: 50 },
-    { time: 16, flow: 35 },
-    { time: 18, flow: 20 },
-    { time: 20, flow: 55 },
-    { time: 22, flow: 25 },
-    { time: 24, flow: 10 },
-  ]);
+// Flow sensor state - starts empty, filled when sensor connects
+  const [sensorConnected, setSensorConnected] = useState(false);
+  const [flowData, setFlowData] = useState<Array<{ time: number; flow: number; ml: number }>>([]);
+  const [totalFlowIntake, setTotalFlowIntake] = useState(0);
+  
+  // Flow-based hydration tracking
+  const flowPercentage = Math.min(100, Math.round((totalFlowIntake / dailyGoal) * 100));
+  const flowRemaining = Math.max(0, dailyGoal - totalFlowIntake);
 
-  // Flow-based hydration tracking (design only - will be replaced by real sensor data)
-  const flowBasedIntake = flowData.reduce((total, data) => total + data.flow * 2, 0); // Simulated ml from flow
-  const flowPercentage = Math.min(100, Math.round((flowBasedIntake / dailyGoal) * 100));
-  const flowRemaining = Math.max(0, dailyGoal - flowBasedIntake);
-  const sensorConnected = false; // Design placeholder - will be true when sensor is connected
+  // Function to simulate flow sensor data (for testing - replace with real sensor integration)
+  const addFlowReading = useCallback((flowRate: number, mlConsumed: number) => {
+    if (!sensorConnected) return;
+    
+    const now = new Date();
+    const hours = now.getHours() + now.getMinutes() / 60;
+    
+    setFlowData(prev => [...prev, { time: hours, flow: flowRate, ml: mlConsumed }]);
+    setTotalFlowIntake(prev => {
+      const newTotal = Math.min(dailyGoal, prev + mlConsumed);
+      
+      // Log activity for flow detection
+      addActivity('Flow Detected', `Sensor detected ${mlConsumed}ml water flow`);
+      
+      // Check if goal reached
+      if (newTotal >= dailyGoal && prev < dailyGoal) {
+        setTimeout(() => {
+          addActivity('Goal Reached!', `Flow sensor tracked ${dailyGoal}ml - Daily goal complete!`);
+        }, 100);
+      }
+      
+      return newTotal;
+    });
+  }, [sensorConnected, dailyGoal, addActivity]);
+
+  // Connect flow sensor
+  const connectFlowSensor = useCallback((deviceName: string) => {
+    setSensorConnected(true);
+    setFlowData([]);
+    setTotalFlowIntake(0);
+    addActivity('Sensor Connected', `${deviceName} flow sensor is now active`);
+  }, [addActivity]);
+
+  // Disconnect flow sensor
+  const disconnectFlowSensor = useCallback(() => {
+    setSensorConnected(false);
+    addActivity('Sensor Disconnected', 'Flow sensor has been disconnected');
+  }, [addActivity]);
 
   const addWater = useCallback((amount: number) => {
     setWaterIntake((prev) => {
       const newValue = prev + amount;
-      const cappedValue = Math.max(0, Math.min(dailyGoal, newValue));
-      
-      // Log activity for water intake changes
-      if (amount > 0 && cappedValue > prev) {
-        const actualAmount = cappedValue - prev;
-        addActivity('Water Added', `Added ${actualAmount}ml to daily intake`);
-      } else if (amount < 0 && cappedValue < prev) {
-        const actualAmount = prev - cappedValue;
-        addActivity('Water Removed', `Removed ${actualAmount}ml from daily intake`);
-      }
-      
-      // Check if goal reached
-      if (cappedValue >= dailyGoal && prev < dailyGoal) {
-        setTimeout(() => {
-          addActivity('Goal Reached!', `Congratulations! You reached your ${dailyGoal}ml daily goal`);
-        }, 100);
-      }
-      
-      return cappedValue;
+      // Cap at 1000ml max and 0ml min
+      return Math.max(0, Math.min(dailyGoal, newValue));
     });
-  }, [dailyGoal, addActivity]);
+  }, [dailyGoal]);
 
   const percentage = Math.round((waterIntake / dailyGoal) * 100);
   const remaining = Math.max(0, dailyGoal - waterIntake);
 
-  // Generate chart points for flow sensor visualization
+// Generate chart points for flow sensor visualization
   const generateFlowChartPoints = () => {
     const maxFlow = 100; // Max flow rate for visualization
     const chartWidth = 560;
     const chartHeight = 110;
     const startX = 40;
     const startY = 10;
-
+    
+    // Return empty if no data
+    if (flowData.length === 0) {
+      return { linePoints: '', areaPolygon: '' };
+    }
+    
     const linePoints: string[] = [];
     const areaPoints: string[] = [];
-
+    
     flowData.forEach((data) => {
       const xPosition = startX + (data.time / 24) * chartWidth;
       const yPosition = startY + chartHeight - (data.flow / maxFlow) * chartHeight;
       linePoints.push(`${xPosition},${yPosition}`);
       areaPoints.push(`${xPosition},${yPosition}`);
     });
-
+    
     // Create area polygon (add bottom points for fill)
     let areaPolygon = areaPoints.join(' ');
     if (areaPoints.length > 0) {
@@ -258,10 +271,10 @@ export default function Home() {
       const firstX = startX + (flowData[0].time / 24) * chartWidth;
       areaPolygon += ` ${lastX},${startY + chartHeight} ${firstX},${startY + chartHeight}`;
     }
-
+    
     return { linePoints: linePoints.join(' '), areaPolygon };
   };
-
+  
   const { linePoints, areaPolygon } = generateFlowChartPoints();
 
   return (
@@ -1283,13 +1296,13 @@ export default function Home() {
                         ? 'Keep Drinking!' 
                         : 'Goal Reached!'}
                   </div>
-                  <div className="alert-message">
-                    {!sensorConnected 
-                      ? 'Awaiting flow sensor connection...' 
-                      : flowRemaining > 0 
-                        ? `Flow detected: ${flowBasedIntake}ml consumed. ${flowRemaining}ml remaining.`
-                        : `Excellent! Flow sensor tracked ${flowBasedIntake}ml today!`}
-                  </div>
+<div className="alert-message">
+  {!sensorConnected
+  ? 'Awaiting flow sensor connection...'
+  : flowRemaining > 0
+  ? `Flow detected: ${totalFlowIntake}ml consumed. ${flowRemaining}ml remaining.`
+  : `Excellent! Flow sensor tracked ${totalFlowIntake}ml today!`}
+  </div>
                 </div>
                 <button className="alert-close" onClick={() => setShowAlert(false)}>×</button>
               </div>
@@ -1326,70 +1339,78 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="chart-card">
-              <div className="chart-header">
-                <div className="chart-info">
-                  <p className="chart-label">Flow Rate Monitor</p>
-                  <p className="chart-title">Real-time Water Flow</p>
-                  <p className="chart-time">Sensor data visualization</p>
-                </div>
-                <div className="chart-consumed">
-                  <p className="chart-consumed-label">Current Flow</p>
-                  <p className="chart-consumed-value">--ml/s</p>
-                  <p style={{fontSize: '11px', color: 'var(--muted-foreground)', marginTop: '4px'}}>Awaiting sensor</p>
-                </div>
-              </div>
-
-              <div className="chart-container">
-                <svg className="chart-svg" viewBox="0 0 600 150" preserveAspectRatio="none">
-                  <line x1="0" y1="30" x2="600" y2="30" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
-                  <line x1="0" y1="60" x2="600" y2="60" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
-                  <line x1="0" y1="90" x2="600" y2="90" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
-                  <line x1="0" y1="120" x2="600" y2="120" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
-
-                  <text x="5" y="20" fontSize="10" fill="var(--muted-foreground)" dy="0.3em">100</text>
-                  <text x="5" y="50" fontSize="10" fill="var(--muted-foreground)" dy="0.3em">75</text>
-                  <text x="5" y="80" fontSize="10" fill="var(--muted-foreground)" dy="0.3em">50</text>
-                  <text x="5" y="110" fontSize="10" fill="var(--muted-foreground)" dy="0.3em">25</text>
-                  <text x="5" y="135" fontSize="10" fill="var(--muted-foreground)" dy="0.3em">ml/s</text>
-
-                  <line x1="40" y1="10" x2="40" y2="120" stroke="rgba(255,255,255,0.5)" strokeWidth="2"/>
-                  <line x1="40" y1="120" x2="600" y2="120" stroke="rgba(255,255,255,0.5)" strokeWidth="2"/>
-
-                  <defs>
-                    <linearGradient id="chart-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" style={{stopColor: '#5ba8e6', stopOpacity: 0.4}} />
-                      <stop offset="100%" style={{stopColor: '#275CCC', stopOpacity: 0.05}} />
-                    </linearGradient>
-                  </defs>
-                  <polygon points={areaPolygon} fill="url(#chart-gradient)"/>
-                  <polyline points={linePoints} fill="none" stroke="#275CCC" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                  
-                  {/* Flow data points */}
-                  {flowData.map((data, index) => {
-                    const xPosition = 40 + (data.time / 24) * 560;
-                    const yPosition = 10 + 110 - (data.flow / 100) * 110;
-                    return (
-                      <circle 
-                        key={index}
-                        cx={xPosition} 
-                        cy={yPosition} 
-                        r="4" 
-                        fill="#275CCC" 
-                        stroke="white" 
-                        strokeWidth="2"
-                      />
-                    );
-                  })}
-
-                  <text x="50" y="140" fontSize="10" fill="var(--muted-foreground)" textAnchor="start">0h</text>
-                  <text x="150" y="140" fontSize="10" fill="var(--muted-foreground)" textAnchor="middle">4h</text>
-                  <text x="250" y="140" fontSize="10" fill="var(--muted-foreground)" textAnchor="middle">8h</text>
-                  <text x="350" y="140" fontSize="10" fill="var(--muted-foreground)" textAnchor="middle">12h</text>
-                  <text x="450" y="140" fontSize="10" fill="var(--muted-foreground)" textAnchor="middle">16h</text>
-                  <text x="550" y="140" fontSize="10" fill="var(--muted-foreground)" textAnchor="middle">20h</text>
-                </svg>
-              </div>
+<div className="chart-card">
+  <div className="chart-header">
+  <div className="chart-info">
+  <p className="chart-label">Flow Rate Monitor</p>
+  <p className="chart-title">{sensorConnected ? 'Real-time Water Flow' : 'No Sensor Connected'}</p>
+  <p className="chart-time">{sensorConnected ? `${flowData.length} readings today` : 'Connect a flow sensor to track'}</p>
+  </div>
+  <div className="chart-consumed">
+  <p className="chart-consumed-label">{sensorConnected ? 'Total Tracked' : 'Current Flow'}</p>
+  <p className="chart-consumed-value">{sensorConnected ? `${totalFlowIntake}ml` : '--'}</p>
+  <p style={{fontSize: '11px', color: 'var(--muted-foreground)', marginTop: '4px'}}>{sensorConnected ? `${flowPercentage}% of goal` : 'Awaiting sensor'}</p>
+  </div>
+  </div>
+  
+  <div className="chart-container">
+  <svg className="chart-svg" viewBox="0 0 600 150" preserveAspectRatio="none">
+  <line x1="0" y1="30" x2="600" y2="30" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
+  <line x1="0" y1="60" x2="600" y2="60" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
+  <line x1="0" y1="90" x2="600" y2="90" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
+  <line x1="0" y1="120" x2="600" y2="120" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
+  
+  <text x="5" y="20" fontSize="10" fill="var(--muted-foreground)" dy="0.3em">100</text>
+  <text x="5" y="50" fontSize="10" fill="var(--muted-foreground)" dy="0.3em">75</text>
+  <text x="5" y="80" fontSize="10" fill="var(--muted-foreground)" dy="0.3em">50</text>
+  <text x="5" y="110" fontSize="10" fill="var(--muted-foreground)" dy="0.3em">25</text>
+  <text x="5" y="135" fontSize="10" fill="var(--muted-foreground)" dy="0.3em">ml/s</text>
+  
+  <line x1="40" y1="10" x2="40" y2="120" stroke="rgba(255,255,255,0.5)" strokeWidth="2"/>
+  <line x1="40" y1="120" x2="600" y2="120" stroke="rgba(255,255,255,0.5)" strokeWidth="2"/>
+  
+  <defs>
+  <linearGradient id="chart-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+  <stop offset="0%" style={{stopColor: '#5ba8e6', stopOpacity: 0.4}} />
+  <stop offset="100%" style={{stopColor: '#275CCC', stopOpacity: 0.05}} />
+  </linearGradient>
+  </defs>
+  
+  {/* Show empty state or chart data */}
+  {!sensorConnected || flowData.length === 0 ? (
+    <text x="300" y="70" fontSize="14" fill="var(--muted-foreground)" textAnchor="middle">
+      {sensorConnected ? 'Waiting for flow data...' : 'Connect flow sensor to see data'}
+    </text>
+  ) : (
+    <>
+      <polygon points={areaPolygon} fill="url(#chart-gradient)"/>
+      <polyline points={linePoints} fill="none" stroke="#275CCC" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+      {flowData.map((data, index) => {
+        const xPosition = 40 + (data.time / 24) * 560;
+        const yPosition = 10 + 110 - (data.flow / 100) * 110;
+        return (
+          <circle
+            key={index}
+            cx={xPosition}
+            cy={yPosition}
+            r="4"
+            fill="#275CCC"
+            stroke="white"
+            strokeWidth="2"
+          />
+        );
+      })}
+    </>
+  )}
+  
+  <text x="50" y="140" fontSize="10" fill="var(--muted-foreground)" textAnchor="start">0h</text>
+  <text x="150" y="140" fontSize="10" fill="var(--muted-foreground)" textAnchor="middle">4h</text>
+  <text x="250" y="140" fontSize="10" fill="var(--muted-foreground)" textAnchor="middle">8h</text>
+  <text x="350" y="140" fontSize="10" fill="var(--muted-foreground)" textAnchor="middle">12h</text>
+  <text x="450" y="140" fontSize="10" fill="var(--muted-foreground)" textAnchor="middle">16h</text>
+  <text x="550" y="140" fontSize="10" fill="var(--muted-foreground)" textAnchor="middle">20h</text>
+  </svg>
+  </div>
             </div>
 
             <div className="grid-2">
@@ -1420,8 +1441,8 @@ export default function Home() {
                   <p className="summary-item-label">Hydration</p>
                 </div>
                 <div>
-                  <p className="summary-item-value">{sensorConnected ? `${flowBasedIntake}ml` : '--'}</p>
-                  <p className="summary-item-label">Flow Detected</p>
+<p className="summary-item-value">{sensorConnected ? `${totalFlowIntake}ml` : '--'}</p>
+  <p className="summary-item-label">Flow Detected</p>
                 </div>
                 <div>
                   <p className="summary-item-value">{sensorConnected ? `${flowRemaining}ml` : '--'}</p>
@@ -1499,8 +1520,8 @@ export default function Home() {
                     <p className="summary-item-label">Flow Events</p>
                   </div>
                   <div>
-                    <p className="summary-item-value">{sensorConnected ? `${flowBasedIntake}ml` : '--'}</p>
-                    <p className="summary-item-label">Total Volume</p>
+<p className="summary-item-value">{sensorConnected ? `${totalFlowIntake}ml` : '--'}</p>
+  <p className="summary-item-label">Total Volume</p>
                   </div>
                   <div>
                     <p className="summary-item-value">{dailyGoal}ml</p>
