@@ -8,6 +8,8 @@ const DAILY_GOAL = 1000; // Athlete daily goal: 1000ml
 // State variables
 let waterIntake = 0;
 let sensorConnected = false; // Design placeholder - will be true when sensor is connected
+let isLoggedIn = false;
+let userData = null;
 
 // Flow sensor simulation data for chart (design only - will be replaced by real sensor data)
 const flowData = [
@@ -92,25 +94,29 @@ function updateAlert() {
 // ============================================
 
 function updateSummary() {
+  const summaryHydration = document.getElementById('summary-hydration');
+  const summaryFlow = document.getElementById('summary-flow');
+  const summaryRemaining = document.getElementById('summary-remaining');
+  const activityFlowEvents = document.getElementById('activity-flow-events');
+  const activityTotalVolume = document.getElementById('activity-total-volume');
+  
   if (sensorConnected) {
-    document.getElementById('summary-hydration').textContent = flowPercentage + '%';
-    document.getElementById('summary-consumed').textContent = flowBasedIntake + 'ml';
-    document.getElementById('summary-remaining').textContent = flowRemaining + 'ml';
-    document.getElementById('sensor-note').classList.add('hidden');
+    if (summaryHydration) summaryHydration.textContent = flowPercentage + '%';
+    if (summaryFlow) summaryFlow.textContent = flowBasedIntake + 'ml';
+    if (summaryRemaining) summaryRemaining.textContent = flowRemaining + 'ml';
     
     // Activity page
     const flowEvents = flowData.filter(d => d.flow > 0).length;
-    document.getElementById('activity-flow-events').textContent = flowEvents;
-    document.getElementById('activity-total-volume').textContent = flowBasedIntake + 'ml';
+    if (activityFlowEvents) activityFlowEvents.textContent = flowEvents;
+    if (activityTotalVolume) activityTotalVolume.textContent = flowBasedIntake + 'ml';
   } else {
-    document.getElementById('summary-hydration').textContent = '--';
-    document.getElementById('summary-consumed').textContent = '--';
-    document.getElementById('summary-remaining').textContent = '--';
-    document.getElementById('sensor-note').classList.remove('hidden');
+    if (summaryHydration) summaryHydration.textContent = '--';
+    if (summaryFlow) summaryFlow.textContent = '--';
+    if (summaryRemaining) summaryRemaining.textContent = '--';
     
     // Activity page
-    document.getElementById('activity-flow-events').textContent = '--';
-    document.getElementById('activity-total-volume').textContent = '--';
+    if (activityFlowEvents) activityFlowEvents.textContent = '--';
+    if (activityTotalVolume) activityTotalVolume.textContent = '--';
   }
 }
 
@@ -134,6 +140,161 @@ function showPage(pageName) {
   
   // Activate nav button
   document.getElementById('nav-' + pageName).classList.add('active');
+}
+
+// ============================================
+// Authentication Functions
+// ============================================
+
+function switchAuthTab(tab) {
+  const loginTab = document.getElementById('login-tab');
+  const signupTab = document.getElementById('signup-tab');
+  const loginForm = document.getElementById('login-form');
+  const signupForm = document.getElementById('signup-form');
+  const loginError = document.getElementById('login-error');
+  const signupError = document.getElementById('signup-error');
+  
+  // Clear errors
+  loginError.classList.add('hidden');
+  signupError.classList.add('hidden');
+  
+  if (tab === 'login') {
+    loginTab.classList.add('active');
+    signupTab.classList.remove('active');
+    loginForm.classList.remove('hidden');
+    signupForm.classList.add('hidden');
+  } else {
+    loginTab.classList.remove('active');
+    signupTab.classList.add('active');
+    loginForm.classList.add('hidden');
+    signupForm.classList.remove('hidden');
+  }
+}
+
+function handleLogin() {
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('login-password').value;
+  const errorDiv = document.getElementById('login-error');
+  
+  // Validation
+  if (!email || !password) {
+    errorDiv.textContent = 'Please enter email and password';
+    errorDiv.classList.remove('hidden');
+    return;
+  }
+  
+  // For demo purposes, create user data if none exists
+  if (!userData) {
+    userData = {
+      firstName: 'Athlete',
+      lastName: 'User',
+      email: email,
+      age: '25',
+      weight: '70',
+      activityLevel: 'moderate'
+    };
+  }
+  
+  isLoggedIn = true;
+  updateProfileView();
+  
+  // Clear form
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-password').value = '';
+  errorDiv.classList.add('hidden');
+}
+
+function handleSignUp() {
+  const firstName = document.getElementById('signup-firstname').value;
+  const lastName = document.getElementById('signup-lastname').value;
+  const email = document.getElementById('signup-email').value;
+  const password = document.getElementById('signup-password').value;
+  const confirmPassword = document.getElementById('signup-confirm').value;
+  const age = document.getElementById('signup-age').value;
+  const weight = document.getElementById('signup-weight').value;
+  const activityLevel = document.getElementById('signup-activity').value;
+  const errorDiv = document.getElementById('signup-error');
+  
+  // Validation
+  if (!firstName || !lastName || !email || !password) {
+    errorDiv.textContent = 'Please fill in all required fields';
+    errorDiv.classList.remove('hidden');
+    return;
+  }
+  
+  if (password !== confirmPassword) {
+    errorDiv.textContent = 'Passwords do not match';
+    errorDiv.classList.remove('hidden');
+    return;
+  }
+  
+  if (password.length < 6) {
+    errorDiv.textContent = 'Password must be at least 6 characters';
+    errorDiv.classList.remove('hidden');
+    return;
+  }
+  
+  // Save user data
+  userData = {
+    firstName: firstName,
+    lastName: lastName,
+    email: email,
+    age: age || '25',
+    weight: weight || '70',
+    activityLevel: activityLevel
+  };
+  
+  isLoggedIn = true;
+  updateProfileView();
+  
+  // Clear form
+  document.getElementById('signup-firstname').value = '';
+  document.getElementById('signup-lastname').value = '';
+  document.getElementById('signup-email').value = '';
+  document.getElementById('signup-password').value = '';
+  document.getElementById('signup-confirm').value = '';
+  document.getElementById('signup-age').value = '';
+  document.getElementById('signup-weight').value = '';
+  document.getElementById('signup-activity').value = 'moderate';
+  errorDiv.classList.add('hidden');
+}
+
+function handleLogout() {
+  isLoggedIn = false;
+  updateProfileView();
+}
+
+function updateProfileView() {
+  const authContainer = document.getElementById('auth-container');
+  const profileView = document.getElementById('profile-view');
+  
+  if (isLoggedIn && userData) {
+    authContainer.classList.add('hidden');
+    profileView.classList.remove('hidden');
+    
+    // Update profile display
+    document.getElementById('profile-name').textContent = userData.firstName + ' ' + userData.lastName;
+    document.getElementById('profile-email').textContent = userData.email;
+    document.getElementById('profile-age').textContent = userData.age || '--';
+    document.getElementById('profile-weight').textContent = (userData.weight || '--') + 'kg';
+    
+    // Format activity level
+    const activityLabels = {
+      'sedentary': 'Sedentary',
+      'light': 'Light',
+      'moderate': 'Moderate',
+      'active': 'Active',
+      'athlete': 'Athlete'
+    };
+    const activityDisplay = activityLabels[userData.activityLevel] || userData.activityLevel;
+    document.getElementById('profile-activity-display').textContent = activityDisplay;
+    document.getElementById('profile-activity-level').textContent = activityDisplay;
+    document.getElementById('profile-email-display').textContent = userData.email;
+  } else {
+    authContainer.classList.remove('hidden');
+    profileView.classList.add('hidden');
+    switchAuthTab('login');
+  }
 }
 
 // ============================================
@@ -240,6 +401,7 @@ function init() {
   updateAlert();
   updateSummary();
   drawChart();
+  updateProfileView();
   
   console.log('Dashboard initialized');
   console.log('Daily Goal:', DAILY_GOAL + 'ml');

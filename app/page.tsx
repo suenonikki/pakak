@@ -2,11 +2,101 @@
 
 import { useCallback, useState } from 'react';
 
+interface UserData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  age: string;
+  weight: string;
+  activityLevel: string;
+}
+
 export default function Home() {
   const [activePage, setActivePage] = useState('home');
   const [waterIntake, setWaterIntake] = useState(0);
   const dailyGoal = 1000; // Athlete daily goal: 1000ml
   const [showAlert, setShowAlert] = useState(true);
+
+  // Authentication state
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [userData, setUserData] = useState<UserData | null>(null);
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    age: '',
+    weight: '',
+    activityLevel: 'moderate'
+  });
+  const [formError, setFormError] = useState('');
+
+  // Handle form input changes
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormError('');
+  };
+
+  // Handle sign up
+  const handleSignUp = () => {
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
+      setFormError('Please fill in all required fields');
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setFormError('Passwords do not match');
+      return;
+    }
+    if (formData.password.length < 6) {
+      setFormError('Password must be at least 6 characters');
+      return;
+    }
+    
+    // Save user data and log in
+    setUserData({
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      age: formData.age || '25',
+      weight: formData.weight || '70',
+      activityLevel: formData.activityLevel
+    });
+    setIsLoggedIn(true);
+    setFormData({ firstName: '', lastName: '', email: '', password: '', confirmPassword: '', age: '', weight: '', activityLevel: 'moderate' });
+  };
+
+  // Handle login
+  const handleLogin = () => {
+    if (!formData.email || !formData.password) {
+      setFormError('Please enter email and password');
+      return;
+    }
+    
+    // For demo purposes, just log in with default data if no user exists
+    if (!userData) {
+      setUserData({
+        firstName: 'Athlete',
+        lastName: 'User',
+        email: formData.email,
+        age: '25',
+        weight: '70',
+        activityLevel: 'moderate'
+      });
+    }
+    setIsLoggedIn(true);
+    setFormData({ firstName: '', lastName: '', email: '', password: '', confirmPassword: '', age: '', weight: '', activityLevel: 'moderate' });
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setAuthMode('login');
+  };
 
   // Flow sensor simulation data for chart (design only - will be replaced by real sensor data)
   const [flowData] = useState([
@@ -817,12 +907,153 @@ export default function Home() {
           margin-bottom: 4px;
         }
 
-        .stat-box-label {
-          font-size: 12px;
-          color: var(--muted-foreground);
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
+.stat-box-label {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  }
+
+  .auth-container {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 32px;
+    background: var(--card);
+    border-radius: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  .auth-tabs {
+    display: flex;
+    margin-bottom: 24px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 12px;
+    padding: 4px;
+  }
+
+  .auth-tab {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+  }
+
+  .auth-tab.active {
+    background: var(--primary);
+    color: white;
+  }
+
+  .auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .form-row {
+    display: flex;
+    gap: 12px;
+  }
+
+  .form-row .form-group {
+    flex: 1;
+  }
+
+  .form-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--foreground);
+  }
+
+  .form-input {
+    padding: 12px 16px;
+    border: 2px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    font-size: 14px;
+    background: var(--background);
+    color: var(--foreground);
+    transition: border-color 0.2s ease;
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+
+  .form-select {
+    padding: 12px 16px;
+    border: 2px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    font-size: 14px;
+    background: var(--background);
+    color: var(--foreground);
+    cursor: pointer;
+  }
+
+  .form-error {
+    color: #e74c3c;
+    font-size: 13px;
+    text-align: center;
+    padding: 8px;
+    background: rgba(231, 76, 60, 0.1);
+    border-radius: 8px;
+  }
+
+  .auth-btn {
+    padding: 14px 24px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 8px;
+  }
+
+  .auth-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(39, 92, 204, 0.3);
+  }
+
+  .logout-btn {
+    padding: 12px 24px;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 16px;
+  }
+
+  .logout-btn:hover {
+    background: #c0392b;
+  }
+
+  .profile-logged-in {
+    text-align: center;
+  }
+
+  .profile-welcome {
+    font-size: 14px;
+    color: var(--muted-foreground);
+    margin-bottom: 8px;
+  }
 
         @media (max-width: 640px) {
           .content {
@@ -1153,64 +1384,224 @@ export default function Home() {
 
             {/* Profile Page */}
             <div className={`page-container ${activePage === 'profile' ? 'active' : ''}`}>
-              <div className="profile-header">
-                <div className="profile-avatar">👤</div>
-                <div className="profile-info">
-                  <h2>Alex Johnson</h2>
-                  <p>Health & Wellness Enthusiast</p>
-                </div>
-              </div>
+              {!isLoggedIn ? (
+                /* Login / Sign Up Form */
+                <div className="auth-container">
+                  <div className="auth-tabs">
+                    <button 
+                      className={`auth-tab ${authMode === 'login' ? 'active' : ''}`}
+                      onClick={() => { setAuthMode('login'); setFormError(''); }}
+                    >
+                      Log In
+                    </button>
+                    <button 
+                      className={`auth-tab ${authMode === 'signup' ? 'active' : ''}`}
+                      onClick={() => { setAuthMode('signup'); setFormError(''); }}
+                    >
+                      Sign Up
+                    </button>
+                  </div>
 
-              <div className="profile-stats">
-                <div className="stat-box">
-                  <div className="stat-box-value">28</div>
-                  <div className="stat-box-label">Age</div>
+                  {authMode === 'login' ? (
+                    /* Login Form */
+                    <div className="auth-form">
+                      <div className="form-group">
+                        <label className="form-label">Email</label>
+                        <input 
+                          type="email" 
+                          name="email"
+                          className="form-input" 
+                          placeholder="Enter your email"
+                          value={formData.email}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Password</label>
+                        <input 
+                          type="password" 
+                          name="password"
+                          className="form-input" 
+                          placeholder="Enter your password"
+                          value={formData.password}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                      {formError && <div className="form-error">{formError}</div>}
+                      <button className="auth-btn" onClick={handleLogin}>Log In</button>
+                    </div>
+                  ) : (
+                    /* Sign Up Form */
+                    <div className="auth-form">
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label className="form-label">First Name *</label>
+                          <input 
+                            type="text" 
+                            name="firstName"
+                            className="form-input" 
+                            placeholder="First name"
+                            value={formData.firstName}
+                            onChange={handleInputChange}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Last Name *</label>
+                          <input 
+                            type="text" 
+                            name="lastName"
+                            className="form-input" 
+                            placeholder="Last name"
+                            value={formData.lastName}
+                            onChange={handleInputChange}
+                          />
+                        </div>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Email *</label>
+                        <input 
+                          type="email" 
+                          name="email"
+                          className="form-input" 
+                          placeholder="Enter your email"
+                          value={formData.email}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Password *</label>
+                        <input 
+                          type="password" 
+                          name="password"
+                          className="form-input" 
+                          placeholder="Create a password (min 6 characters)"
+                          value={formData.password}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Confirm Password *</label>
+                        <input 
+                          type="password" 
+                          name="confirmPassword"
+                          className="form-input" 
+                          placeholder="Confirm your password"
+                          value={formData.confirmPassword}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label className="form-label">Age</label>
+                          <input 
+                            type="number" 
+                            name="age"
+                            className="form-input" 
+                            placeholder="Age"
+                            value={formData.age}
+                            onChange={handleInputChange}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Weight (kg)</label>
+                          <input 
+                            type="number" 
+                            name="weight"
+                            className="form-input" 
+                            placeholder="Weight"
+                            value={formData.weight}
+                            onChange={handleInputChange}
+                          />
+                        </div>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Activity Level</label>
+                        <select 
+                          name="activityLevel"
+                          className="form-select"
+                          value={formData.activityLevel}
+                          onChange={handleInputChange}
+                        >
+                          <option value="sedentary">Sedentary</option>
+                          <option value="light">Lightly Active</option>
+                          <option value="moderate">Moderately Active</option>
+                          <option value="active">Very Active</option>
+                          <option value="athlete">Athlete</option>
+                        </select>
+                      </div>
+                      {formError && <div className="form-error">{formError}</div>}
+                      <button className="auth-btn" onClick={handleSignUp}>Create Account</button>
+                    </div>
+                  )}
                 </div>
-                <div className="stat-box">
-                  <div className="stat-box-value">72</div>
-                  <div className="stat-box-label">Heart Rate</div>
-                </div>
-                <div className="stat-box">
-                  <div className="stat-box-value">98%</div>
-                  <div className="stat-box-label">O2 Level</div>
-                </div>
-              </div>
+              ) : (
+                /* Logged In Profile View */
+                <>
+                  <div className="profile-header">
+                    <div className="profile-avatar">👤</div>
+                    <div className="profile-info">
+                      <p className="profile-welcome">Welcome back,</p>
+                      <h2>{userData?.firstName} {userData?.lastName}</h2>
+                      <p>{userData?.email}</p>
+                    </div>
+                  </div>
 
-              <div className="summary-card">
-                <h3 className="card-title">Weekly Statistics</h3>
-                <div className="summary-grid">
-                  <div>
-                    <p className="summary-item-value">89%</p>
-                    <p className="summary-item-label">Avg Hydration</p>
+                  <div className="profile-stats">
+                    <div className="stat-box">
+                      <div className="stat-box-value">{userData?.age || '--'}</div>
+                      <div className="stat-box-label">Age</div>
+                    </div>
+                    <div className="stat-box">
+                      <div className="stat-box-value">{userData?.weight || '--'}kg</div>
+                      <div className="stat-box-label">Weight</div>
+                    </div>
+                    <div className="stat-box">
+                      <div className="stat-box-value">{userData?.activityLevel === 'athlete' ? 'Athlete' : userData?.activityLevel?.charAt(0).toUpperCase() + userData?.activityLevel?.slice(1) || '--'}</div>
+                      <div className="stat-box-label">Activity</div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="summary-item-value">7500ml</p>
-                    <p className="summary-item-label">Weekly Total</p>
-                  </div>
-                  <div>
-                    <p className="summary-item-value">42</p>
-                    <p className="summary-item-label">Days Streak</p>
-                  </div>
-                </div>
-              </div>
 
-              <div className="summary-card">
-                <h3 className="card-title">Goals & Preferences</h3>
-                <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
-                  <div style={{padding: '12px 0', borderBottom: '1px solid rgba(0,0,0,0.05)'}}>
-                    <p style={{fontWeight: 600, marginBottom: '4px', color: 'var(--foreground)'}}>Daily Goal</p>
-                    <p style={{color: 'var(--muted-foreground)', fontSize: '14px'}}>1000ml per day</p>
+                  <div className="summary-card">
+                    <h3 className="card-title">Weekly Statistics</h3>
+                    <div className="summary-grid">
+                      <div>
+                        <p className="summary-item-value">89%</p>
+                        <p className="summary-item-label">Avg Hydration</p>
+                      </div>
+                      <div>
+                        <p className="summary-item-value">7000ml</p>
+                        <p className="summary-item-label">Weekly Total</p>
+                      </div>
+                      <div>
+                        <p className="summary-item-value">1</p>
+                        <p className="summary-item-label">Days Streak</p>
+                      </div>
+                    </div>
                   </div>
-                  <div style={{padding: '12px 0', borderBottom: '1px solid rgba(0,0,0,0.05)'}}>
-                    <p style={{fontWeight: 600, marginBottom: '4px', color: 'var(--foreground)'}}>Reminder Frequency</p>
-                    <p style={{color: 'var(--muted-foreground)', fontSize: '14px'}}>Every 2 hours</p>
+
+                  <div className="summary-card">
+                    <h3 className="card-title">Goals & Preferences</h3>
+                    <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                      <div style={{padding: '12px 0', borderBottom: '1px solid rgba(0,0,0,0.05)'}}>
+                        <p style={{fontWeight: 600, marginBottom: '4px', color: 'var(--foreground)'}}>Daily Goal</p>
+                        <p style={{color: 'var(--muted-foreground)', fontSize: '14px'}}>{dailyGoal}ml per day</p>
+                      </div>
+                      <div style={{padding: '12px 0', borderBottom: '1px solid rgba(0,0,0,0.05)'}}>
+                        <p style={{fontWeight: 600, marginBottom: '4px', color: 'var(--foreground)'}}>Activity Level</p>
+                        <p style={{color: 'var(--muted-foreground)', fontSize: '14px'}}>{userData?.activityLevel === 'athlete' ? 'Athlete' : userData?.activityLevel?.charAt(0).toUpperCase() + userData?.activityLevel?.slice(1)}</p>
+                      </div>
+                      <div style={{padding: '12px 0'}}>
+                        <p style={{fontWeight: 600, marginBottom: '4px', color: 'var(--foreground)'}}>Account Email</p>
+                        <p style={{color: 'var(--muted-foreground)', fontSize: '14px'}}>{userData?.email}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div style={{padding: '12px 0'}}>
-                    <p style={{fontWeight: 600, marginBottom: '4px', color: 'var(--foreground)'}}>Member Since</p>
-                    <p style={{color: 'var(--muted-foreground)', fontSize: '14px'}}>January 2024</p>
+
+                  <div style={{textAlign: 'center'}}>
+                    <button className="logout-btn" onClick={handleLogout}>Log Out</button>
                   </div>
-                </div>
-              </div>
+                </>
+              )}
             </div>
           </div>
         </main>
