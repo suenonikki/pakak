@@ -11,6 +11,10 @@ let sensorConnected = false; // Design placeholder - will be true when sensor is
 let isLoggedIn = false;
 let userData = null;
 
+// Emoji cycling for Stay Hydrated
+const hydrationEmojis = ['💧', '🥤', '💦', '🚰', '🧊', '🌊'];
+let currentEmojiIndex = 0;
+
 // Flow sensor simulation data for chart (design only - will be replaced by real sensor data)
 const flowData = [
   { time: 0, flow: 0 },
@@ -36,6 +40,33 @@ function calculateFlowBasedIntake() {
 const flowBasedIntake = calculateFlowBasedIntake();
 const flowPercentage = Math.min(100, Math.round((flowBasedIntake / DAILY_GOAL) * 100));
 const flowRemaining = Math.max(0, DAILY_GOAL - flowBasedIntake);
+
+// ============================================
+// Greeting and Emoji Functions
+// ============================================
+
+function updateGreeting() {
+  const greetingElement = document.getElementById('greeting-text');
+  if (greetingElement) {
+    if (isLoggedIn && userData && userData.firstName) {
+      greetingElement.textContent = 'Good Morning, ' + userData.firstName;
+    } else {
+      greetingElement.textContent = 'Good Morning, User';
+    }
+  }
+}
+
+function cycleEmoji() {
+  currentEmojiIndex = (currentEmojiIndex + 1) % hydrationEmojis.length;
+  const emojiElement = document.getElementById('hydration-emoji');
+  if (emojiElement) {
+    emojiElement.textContent = hydrationEmojis[currentEmojiIndex];
+  }
+}
+
+function startEmojiCycle() {
+  setInterval(cycleEmoji, 1500);
+}
 
 // ============================================
 // Water Intake Functions
@@ -295,6 +326,9 @@ function updateProfileView() {
     profileView.classList.add('hidden');
     switchAuthTab('login');
   }
+  
+  // Update greeting when profile changes
+  updateGreeting();
 }
 
 // ============================================
@@ -402,6 +436,10 @@ function init() {
   updateSummary();
   drawChart();
   updateProfileView();
+  updateGreeting();
+  
+  // Start emoji cycling animation
+  startEmojiCycle();
   
   console.log('Dashboard initialized');
   console.log('Daily Goal:', DAILY_GOAL + 'ml');

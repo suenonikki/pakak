@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 
 interface UserData {
   firstName: string;
@@ -34,6 +34,17 @@ export default function Home() {
     activityLevel: 'moderate'
   });
   const [formError, setFormError] = useState('');
+
+  // Emoji cycling for Stay Hydrated
+  const hydrationEmojis = ['💧', '🥤', '💦', '🚰', '🧊', '🌊'];
+  const [currentEmojiIndex, setCurrentEmojiIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentEmojiIndex((prev) => (prev + 1) % hydrationEmojis.length);
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [hydrationEmojis.length]);
 
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -1131,11 +1142,11 @@ export default function Home() {
               </div>
             </div>
 
-            <div className={`page-container ${activePage === 'home' ? 'active' : ''}`}>
-              <div className="header">
-                <p className="header-subtitle">Good morning</p>
-                <h1 className="header-title">Stay Hydrated</h1>
-              </div>
+<div className={`page-container ${activePage === 'home' ? 'active' : ''}`}>
+  <div className="header">
+  <p className="header-subtitle">Good Morning, {isLoggedIn && userData ? userData.firstName : 'User'}</p>
+  <h1 className="header-title">Stay Hydrated {hydrationEmojis[currentEmojiIndex]}</h1>
+  </div>
 
             {showAlert && (
               <div className="alert">
