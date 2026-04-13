@@ -198,7 +198,12 @@ export default function Home() {
           background: linear-gradient(to bottom, #d4edfc, #a8d4f5);
           padding: 24px;
           box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-          margin-bottom: 24px;
+        }
+
+        .water-card.water-intake-card {
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
         }
 
         .water-card-header {
@@ -343,7 +348,13 @@ export default function Home() {
           background: linear-gradient(to bottom, #d4edfc, #a8d4f5);
           padding: 24px;
           box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-          margin-bottom: 24px;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .chart-card.realtime-flow-card {
+          grid-column: 2;
+          grid-row: 1;
         }
 
         .chart-header {
@@ -404,7 +415,7 @@ export default function Home() {
         .chart-container {
           position: relative;
           width: 100%;
-          height: 280px;
+          height: 220px;
           margin-bottom: 0;
           background-color: rgba(255, 255, 255, 0.5);
           border-radius: 20px;
@@ -414,6 +425,7 @@ export default function Home() {
           justify-content: center;
           border: 2px solid rgba(255, 255, 255, 0.3);
           overflow: visible;
+          flex: 1;
         }
 
         .chart-svg {
@@ -474,6 +486,13 @@ export default function Home() {
           font-size: 13px;
           font-weight: 600;
           color: var(--primary);
+        }
+
+        .water-flow-grid {
+          display: grid;
+          grid-template-columns: 1fr 2fr;
+          gap: 24px;
+          margin-bottom: 24px;
         }
 
         .grid-2 {
@@ -846,91 +865,93 @@ export default function Home() {
               <button className="alert-close" onClick={() => (document.getElementById('alert') as HTMLElement).classList.add('hidden')}>×</button>
             </div>
 
-            <div className="water-card">
-              <div className="water-card-header">
-                <div className="water-card-left">
-                  <p className="water-card-label">Water Intake</p>
-                  <p className="water-card-value"><span id="intake-value">1340</span>ml</p>
+            <div className="water-flow-grid">
+              <div className="water-card water-intake-card">
+                <div className="water-card-header">
+                  <div className="water-card-left">
+                    <p className="water-card-label">Water Intake</p>
+                    <p className="water-card-value"><span id="intake-value">1340</span>ml</p>
+                  </div>
+                  <div className="water-card-right">
+                    <p className="water-card-goal-label">Goal</p>
+                    <p className="water-card-goal">1000ml</p>
+                  </div>
                 </div>
-                <div className="water-card-right">
-                  <p className="water-card-goal-label">Goal</p>
-                  <p className="water-card-goal">1000ml</p>
+
+                <div className="glass-container">
+                  <div className="glass-fill" id="glass-fill" style={{height: '100%'}}>
+                    <svg className="glass-wave" viewBox="0 0 100 15" preserveAspectRatio="none">
+                      <path d="M0,8 Q25,0 50,8 T100,8 L100,15 L0,15 Z" fill="#5ba8e6" style={{animation: 'wave 2s ease-in-out infinite'}}/>
+                    </svg>
+                    <div className="bubble bubble1"></div>
+                    <div className="bubble bubble2"></div>
+                    <div className="bubble bubble3"></div>
+                  </div>
+                  <div className="glass-percentage" id="glass-percentage">100%</div>
+                </div>
+
+                <div className="button-group">
+                  <button className="btn btn-minus" onClick={() => (window as any).addWater(-100)}>−</button>
+                  <button className="btn btn-add" onClick={() => (window as any).addWater(250)}>+</button>
+                  <button className="btn btn-add100" onClick={() => (window as any).addWater(100)}>+100</button>
                 </div>
               </div>
 
-              <div className="glass-container">
-                <div className="glass-fill" id="glass-fill" style={{height: '100%'}}>
-                  <svg className="glass-wave" viewBox="0 0 100 15" preserveAspectRatio="none">
-                    <path d="M0,8 Q25,0 50,8 T100,8 L100,15 L0,15 Z" fill="#5ba8e6" style={{animation: 'wave 2s ease-in-out infinite'}}/>
+              <div className="chart-card realtime-flow-card">
+                <div className="chart-header">
+                  <div className="chart-info">
+                    <p className="chart-label">Real Time Water Flow</p>
+                    <p className="chart-title">Today</p>
+                  </div>
+                  <div className="water-stats">
+                    <div className="stat">
+                      <p className="stat-label">Consumed</p>
+                      <p className="stat-value"><span id="water-consumed">1000</span>ml</p>
+                    </div>
+                    <div className="stat">
+                      <p className="stat-label">Remaining</p>
+                      <p className="stat-value"><span id="water-remaining">0</span>ml</p>
+                    </div>
+                  </div>
+                  <div className="chart-consumed">
+                    <p className="chart-consumed-label">Total Consumed</p>
+                    <p className="chart-consumed-value"><span id="chart-total-ml">1000</span>ml</p>
+                  </div>
+                </div>
+
+                <div className="chart-container">
+                  <svg className="chart-svg" id="drinking-chart" viewBox="0 0 600 150" preserveAspectRatio="none">
+                    <line x1="0" y1="30" x2="600" y2="30" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
+                    <line x1="0" y1="60" x2="600" y2="60" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
+                    <line x1="0" y1="90" x2="600" y2="90" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
+                    <line x1="0" y1="120" x2="600" y2="120" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
+
+                    <text x="5" y="35" fontSize="10" fill="var(--muted-foreground)" dy="0.3em">1000ml</text>
+                    <text x="5" y="65" fontSize="10" fill="var(--muted-foreground)" dy="0.3em">750ml</text>
+                    <text x="5" y="95" fontSize="10" fill="var(--muted-foreground)" dy="0.3em">500ml</text>
+                    <text x="5" y="125" fontSize="10" fill="var(--muted-foreground)" dy="0.3em">250ml</text>
+
+                    <line x1="40" y1="0" x2="40" y2="140" stroke="rgba(255,255,255,0.5)" strokeWidth="2"/>
+                    <line x1="40" y1="140" x2="600" y2="140" stroke="rgba(255,255,255,0.5)" strokeWidth="2"/>
+
+                    <defs>
+                      <linearGradient id="chart-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style={{stopColor: '#5ba8e6', stopOpacity: 0.4}} />
+                        <stop offset="100%" style={{stopColor: '#275CCC', stopOpacity: 0.05}} />
+                      </linearGradient>
+                    </defs>
+                    <polyline id="chart-area" points="" fill="url(#chart-gradient)" stroke="none"/>
+                    <polyline id="chart-line" points="" fill="none" stroke="#275CCC" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                    <g id="chart-points"></g>
+
+                    <text x="50" y="155" fontSize="10" fill="var(--muted-foreground)" textAnchor="start">12 AM</text>
+                    <text x="150" y="155" fontSize="10" fill="var(--muted-foreground)" textAnchor="middle">4 AM</text>
+                    <text x="250" y="155" fontSize="10" fill="var(--muted-foreground)" textAnchor="middle">8 AM</text>
+                    <text x="350" y="155" fontSize="10" fill="var(--muted-foreground)" textAnchor="middle">12 PM</text>
+                    <text x="450" y="155" fontSize="10" fill="var(--muted-foreground)" textAnchor="middle">4 PM</text>
+                    <text x="550" y="155" fontSize="10" fill="var(--muted-foreground)" textAnchor="middle">8 PM</text>
                   </svg>
-                  <div className="bubble bubble1"></div>
-                  <div className="bubble bubble2"></div>
-                  <div className="bubble bubble3"></div>
                 </div>
-                <div className="glass-percentage" id="glass-percentage">100%</div>
-              </div>
-
-              <div className="button-group">
-                <button className="btn btn-minus" onClick={() => (window as any).addWater(-100)}>−</button>
-                <button className="btn btn-add" onClick={() => (window as any).addWater(250)}>+</button>
-                <button className="btn btn-add100" onClick={() => (window as any).addWater(100)}>+100</button>
-              </div>
-            </div>
-
-            <div className="chart-card">
-              <div className="chart-header">
-                <div className="chart-info">
-                  <p className="chart-label">Water Intake</p>
-                  <p className="chart-title">Today</p>
-                </div>
-                <div className="water-stats">
-                  <div className="stat">
-                    <p className="stat-label">Consumed</p>
-                    <p className="stat-value"><span id="water-consumed">1000</span>ml</p>
-                  </div>
-                  <div className="stat">
-                    <p className="stat-label">Remaining</p>
-                    <p className="stat-value"><span id="water-remaining">0</span>ml</p>
-                  </div>
-                </div>
-                <div className="chart-consumed">
-                  <p className="chart-consumed-label">Total Consumed</p>
-                  <p className="chart-consumed-value"><span id="chart-total-ml">1000</span>ml</p>
-                </div>
-              </div>
-
-              <div className="chart-container">
-                <svg className="chart-svg" id="drinking-chart" viewBox="0 0 600 150" preserveAspectRatio="none">
-                  <line x1="0" y1="30" x2="600" y2="30" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
-                  <line x1="0" y1="60" x2="600" y2="60" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
-                  <line x1="0" y1="90" x2="600" y2="90" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
-                  <line x1="0" y1="120" x2="600" y2="120" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
-
-                  <text x="5" y="35" fontSize="10" fill="var(--muted-foreground)" dy="0.3em">1000ml</text>
-                  <text x="5" y="65" fontSize="10" fill="var(--muted-foreground)" dy="0.3em">750ml</text>
-                  <text x="5" y="95" fontSize="10" fill="var(--muted-foreground)" dy="0.3em">500ml</text>
-                  <text x="5" y="125" fontSize="10" fill="var(--muted-foreground)" dy="0.3em">250ml</text>
-
-                  <line x1="40" y1="0" x2="40" y2="140" stroke="rgba(255,255,255,0.5)" strokeWidth="2"/>
-                  <line x1="40" y1="140" x2="600" y2="140" stroke="rgba(255,255,255,0.5)" strokeWidth="2"/>
-
-                  <defs>
-                    <linearGradient id="chart-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" style={{stopColor: '#5ba8e6', stopOpacity: 0.4}} />
-                      <stop offset="100%" style={{stopColor: '#275CCC', stopOpacity: 0.05}} />
-                    </linearGradient>
-                  </defs>
-                  <polyline id="chart-area" points="" fill="url(#chart-gradient)" stroke="none"/>
-                  <polyline id="chart-line" points="" fill="none" stroke="#275CCC" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                  <g id="chart-points"></g>
-
-                  <text x="50" y="155" fontSize="10" fill="var(--muted-foreground)" textAnchor="start">12 AM</text>
-                  <text x="150" y="155" fontSize="10" fill="var(--muted-foreground)" textAnchor="middle">4 AM</text>
-                  <text x="250" y="155" fontSize="10" fill="var(--muted-foreground)" textAnchor="middle">8 AM</text>
-                  <text x="350" y="155" fontSize="10" fill="var(--muted-foreground)" textAnchor="middle">12 PM</text>
-                  <text x="450" y="155" fontSize="10" fill="var(--muted-foreground)" textAnchor="middle">4 PM</text>
-                  <text x="550" y="155" fontSize="10" fill="var(--muted-foreground)" textAnchor="middle">8 PM</text>
-                </svg>
               </div>
             </div>
 
